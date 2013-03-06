@@ -3,3 +3,6 @@ deps
 *.o
 *.beam
 *.plt
+src/tomle_parser.erl
+src/tomle_scanner.erl
+ebin

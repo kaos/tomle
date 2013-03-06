@@ -1,0 +1,3 @@
+[submodule "priv/toml"]
+	path = priv/toml
+	url = git://github.com/mojombo/toml
