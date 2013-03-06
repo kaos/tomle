@@ -44,5 +44,5 @@ nls -> '$empty'.
 nls -> nls nl.
     
     
-Expect 3.
+Expect 6.
 
