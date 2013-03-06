@@ -1,8 +1,10 @@
 tomle
 =====
 
-TOML in Erlang, using the parsetools [leex](http://erlang.org/doc/man/leex.html) and
+[TOML](https://github.com/mojombo/toml) in Erlang, using the parsetools [leex](http://erlang.org/doc/man/leex.html) and
 [yecc](http://erlang.org/doc/man/yecc.html).
+
+Using TOML version b098bd2b06920b69102bd4929cc5d7784893a123.
 
 It parses the `example.toml` file into this erlang term::
 
@@ -32,5 +34,3 @@ It parses the `example.toml` file into this erlang term::
 
 It also parses the `hard_example.toml` file without errors.
 
-The tests are run against the example files from mojombo/toml. See
-priv/toml for which ref was used in the current version.
