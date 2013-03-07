@@ -1,3 +1,6 @@
 [submodule "priv/toml"]
 	path = priv/toml
 	url = git://github.com/mojombo/toml
+[submodule "priv/toml-test"]
+	path = priv/toml-test
+	url = git://github.com/BurntSushi/toml-test.git

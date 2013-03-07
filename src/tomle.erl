@@ -10,7 +10,9 @@
 -export(
    [
     file/1,
-    string/1
+    file/2,
+    string/1,
+    string/2
    ]).
 
 -ifdef(TEST).
@@ -19,22 +21,37 @@
 
 
 file(F) ->
+    file(F, [compile]).
+
+file(F, Opts) when is_list(F) ->
     {ok, File} = file:open(F, [read]),
     try
-        parse_tokens(io:request(File, {get_until, "", tomle_scanner, tokens, []}))
+        file(File, Opts)
     after
         file:close(File)
-    end.
+    end;
+file(File, Opts) ->
+    Res = parse_tokens(io:request(File, {get_until, "", tomle_scanner, tokens, []})),
+    process(Res, Opts).
 
-string(S) when is_list(S) ->
-    parse_tokens(tomle_scanner:string(S));
-string(S) when is_binary(S) ->
-    string(binary_to_list(S)).
+string(S) -> string(S, [compile]).
+
+string(S, Opts) when is_list(S) ->
+    Res = parse_tokens(tomle_scanner:string(S)),
+    process(Res, Opts);
+string(S, Opts) when is_binary(S) ->
+    string(binary_to_list(S), Opts).
 
 
 parse_tokens({ok, Tokens, _Line}) ->
-    compile_parse_tree(tomle_parser:parse(Tokens)).
-    
+    tomle_parser:parse(Tokens).
+
+process(ParseRes, Opts) ->    
+    case proplists:get_bool(compile, Opts) of
+        true -> compile_parse_tree(ParseRes);
+        false -> ParseRes
+    end.
+
 compile_parse_tree({ok, Tree}) ->
     {ok, walk_tree(Tree, [])}.
 
@@ -72,7 +89,7 @@ walk_tree([Value|Array], Acc) when is_list(Value) ->
 
 -ifdef(TEST).
 
-check_compiled_result(T) ->
+check_compiled_result(example, T) ->
     ?assertEqual(
        [{"title", "TOML Example"},
         {"owner", 
@@ -94,17 +111,31 @@ check_compiled_result(T) ->
         {"clients",
           [{"data", [["gamma", "delta"], [1, 2]]},
            {"hosts", ["alpha", "omega"]}]}
+       ], T);
+check_compiled_result(hard_example, T) ->
+    ?assertEqual(
+       [{"the",
+         [{"test_string", "You'll hate me after this - #"},
+          {"hard",
+           [{"test_array", ["] ", " # "]},
+            {"test_array2", ["Test #11 ]proved that", "Experiment #9 was a success" ]},
+            {"another_test_string", " Same thing, but with a string #"},
+            {"harder_test_string", " And when \"'s are in the string, along with # \""},
+            {"bit#",
+             [{"what?", "You don't think some user won't do that?"},
+              {"multi_line_array", ["]"]}]}
+           ]}]}
        ], T).
 
 file_test() ->
     {ok, T} = file(toml_filename("example.toml")),
     %%?debugFmt("~p~n", [T]),
-    check_compiled_result(T).
+    check_compiled_result(example, T).
 
 string_test() ->    
-    {ok, S} = file:read_file(toml_filename("example.toml")),
+    {ok, S} = file:read_file(toml_filename("hard_example.toml")),
     {ok, T} = string(S),
-    check_compiled_result(T).
+    check_compiled_result(hard_example, T).
 
 toml_filename(Filename) ->
     filename:join(["..", "priv", "toml", "tests", Filename]).
