@@ -9,6 +9,7 @@
 
 -export(
    [
+    main/1,
     file/1,
     file/2,
     string/1,
@@ -19,6 +20,9 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
+
+main(Args) ->
+    tomle_main:main(Args).
 
 file(F) ->
     file(F, [compile]).
@@ -46,44 +50,13 @@ string(S, Opts) when is_binary(S) ->
 parse_tokens({ok, Tokens, _Line}) ->
     tomle_parser:parse(Tokens).
 
-process(ParseRes, Opts) ->    
+process({ok, Tree}, Opts) ->    
     case proplists:get_bool(compile, Opts) of
-        true -> compile_parse_tree(ParseRes);
-        false -> ParseRes
-    end.
-
-compile_parse_tree({ok, Tree}) ->
-    {ok, walk_tree(Tree, [])}.
-
-get_group([], L) -> L;
-get_group([{_, _, Key}|Keys], L) ->
-    case lists:keyfind(Key, 1, L) of
-        {Key, V} -> get_group(Keys, V);
-        false -> []
-    end.
-
-set_group([], G, _) -> G;
-set_group([{_, _, Key}=K|Keys], G, L) -> 
-    G1 = set_group(Keys, G, get_group([K], L)),
-    lists:keystore(Key, 1, L, {Key, G1}).
-
-walk_tree([], L) -> L;
-walk_tree([{group, Groupkey, Values}|Tree], L) ->
-    G = walk_tree(Values, get_group(Groupkey, L)),
-    walk_tree(Tree, set_group(Groupkey, G, L));
-walk_tree([{{_, _, Key}, {_, _, Value}}|Tree], L) ->
-    walk_tree(Tree, lists:keystore(Key, 1, L, {Key, Value}));
-walk_tree([{{_, _, Key}, Array}|Tree], L) ->
-    walk_tree(Tree, 
-              lists:keystore(
-                Key, 1, L, 
-                {Key, walk_tree(lists:reverse(Array), [])}
-               ));
-walk_tree([{_, _, Value}|Array], Acc) ->
-    walk_tree(Array, [Value|Acc]);
-walk_tree([Value|Array], Acc) when is_list(Value) ->
-    walk_tree(Array, [walk_tree(lists:reverse(Value), [])|Acc]).
-
+        true -> tomle_compiler:compile(Tree, Opts);
+        false -> {ok, Tree}
+    end;
+process(Error, _) ->     
+    Error.
 
 
 
@@ -170,5 +143,8 @@ example_toml_parser_test() ->
 
 hard_example_toml_parser_test() ->
     ok = parse_file("hard_example.toml").
+
+bad_syntax_test() ->
+    {error, {1, tomle_parser, _}} = string("foo bar").
 
 -endif.
